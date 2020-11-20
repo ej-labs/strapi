@@ -14,6 +14,11 @@ const purestConfig = require('@purest/providers');
 const { getAbsoluteServerUrl } = require('strapi-utils');
 const jwt = require('jsonwebtoken');
 
+const USER_NAME_CONVERT_REG= /[^a-zA-Z0-9]/g;
+function generateUsername(str = '') {
+  return str.replaceAll(USER_NAME_CONVERT_REG,'').toLowerCase() + Math.random().toFixed(3)*1000
+}
+
 /**
  * Connect thanks to a third-party provider.
  *
@@ -32,7 +37,7 @@ const connect = (provider, query) => {
       return reject([null, { message: 'No access_token.' }]);
     }
 
-    // Get the profile.
+ // Get the profile.
     getProfile(provider, query, async (err, profile) => {
       if (err) {
         return reject([null, err]);
@@ -57,30 +62,54 @@ const connect = (provider, query) => {
           })
           .get();
 
-        const user = _.find(users, { provider });
-
-        if (_.isEmpty(user) && !advanced.allow_register) {
-          return resolve([
-            null,
-            [{ messages: [{ id: 'Auth.advanced.allow_register' }] }],
-            'Register action is actualy not available.',
-          ]);
-        }
+        // const user = _.find(users, { provider });
+        
+        if (
+          // _.isEmpty(user) && 
+          !advanced.allow_register) 
+          {
+            return resolve([
+              null,
+              [{ messages: [{ id: 'Auth.advanced.allow_register' }] }],
+              'Register action is actualy not available.',
+            ]);
+          }
+          
+        const user = users[0];
 
         if (!_.isEmpty(user)) {
+          if(
+            !user.providerData || 
+            !user.providerData[provider] || 
+            !user.confirmed || 
+            !user.photoURL ||
+            !user.displayName
+          )
+           strapi.query('user', 'users-permissions').update(
+            {id: user.id},
+            {
+              confirmed: true,
+              photoURL: ( !user.photoURL && profile.photoURL) ? profile.photoURL : undefined,
+              displayName: profile.displayName,
+              providerData : {
+                ...user.providerData,
+                [provider]: profile
+              }
+            }
+          );
           return resolve([user, null]);
         }
 
-        if (
-          !_.isEmpty(_.find(users, user => user.provider !== provider)) &&
-          advanced.unique_email
-        ) {
-          return resolve([
-            null,
-            [{ messages: [{ id: 'Auth.form.error.email.taken' }] }],
-            'Email is already taken.',
-          ]);
-        }
+        // if (
+        //   !_.isEmpty(_.find(users, user => user.provider !== provider)) &&
+        //   advanced.unique_email
+        // ) {
+        //   return resolve([
+        //     null,
+        //     [{ messages: [{ id: 'Auth.form.error.email.taken' }] }],
+        //     'Email is already taken.',
+        //   ]);
+        // }
 
         // Retrieve default role.
         const defaultRole = await strapi
@@ -92,9 +121,14 @@ const connect = (provider, query) => {
           provider: provider,
           role: defaultRole.id,
           confirmed: true,
+          providerData : {
+            [provider]: {
+              ...profile
+            }
+          }
         });
 
-        const createdUser = await strapi.query('user', 'users-permissions').create(params);
+      const createdUser = await strapi.query('user', 'users-permissions').create(params);
 
         return resolve([createdUser, null]);
       } catch (err) {
@@ -187,15 +221,18 @@ const getProfile = async (provider, query, callback) => {
 
       facebook
         .query()
-        .get('me?fields=name,email')
+        .get('me?fields=name,link,verified,location,locale,first_name,last_name,picture.width(160).height(160),email,gender,token_for_business')
         .auth(access_token)
         .request((err, res, body) => {
           if (err) {
             callback(err);
           } else {
             callback(null, {
-              username: body.name,
+              username: 'fb_' + generateUsername(body.name),
+              displayName: body.name,
               email: body.email,
+              uid: body.token_for_business,
+              photoURL: _.get(body, 'picture.data.url')
             });
           }
         });
@@ -205,16 +242,18 @@ const getProfile = async (provider, query, callback) => {
       const google = purest({ provider: 'google', config: purestConfig });
 
       google
-        .query('oauth')
-        .get('tokeninfo')
-        .qs({ access_token })
+        .get("https://www.googleapis.com/oauth2/v3/userinfo")
+        .auth(access_token)
         .request((err, res, body) => {
           if (err) {
             callback(err);
           } else {
             callback(null, {
-              username: body.email.split('@')[0],
+              username: 'gg_' + generateUsername(body.name),
+              displayName: body.name,
               email: body.email,
+              uid: body.sub,
+              photoURL: _.get(body, "picture")
             });
           }
         });

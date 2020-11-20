@@ -55,7 +55,7 @@ module.exports = {
         );
       }
 
-      const query = { provider };
+      const query = { };
 
       // Check if the provided identifier is an email or not.
       const isEmail = emailRegExp.test(params.identifier);
@@ -484,9 +484,9 @@ module.exports = {
     }
 
     try {
-      if (!settings.email_confirmation) {
-        params.confirmed = true;
-      }
+      // if (!settings.email_confirmation) {
+      //   params.confirmed = true;
+      // }
 
       const user = await strapi.query('user', 'users-permissions').create(params);
 
@@ -494,7 +494,7 @@ module.exports = {
         model: strapi.query('user', 'users-permissions').model,
       });
 
-      if (settings.email_confirmation) {
+      if (!settings.disable_auto_send_email_confirm) {
         try {
           await strapi.plugins['users-permissions'].services.user.sendConfirmationEmail(user);
         } catch (err) {
