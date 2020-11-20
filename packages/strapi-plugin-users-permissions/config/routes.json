@@ -340,6 +340,51 @@
       }
     },
     {
+      "method": "POST",
+      "path": "/profile/change-password",
+      "handler": "User.changePassword",
+      "config": {
+        "policies": [],
+        "prefix": "",
+        "description": "Set or change Password",
+        "tag": {
+          "plugin": "users-permissions",
+          "name": "User",
+          "actionType": "changePassword"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/profile/update",
+      "handler": "User.updateProfile",
+      "config": {
+        "policies": [],
+        "prefix": "",
+        "description": "change Profile Data",
+        "tag": {
+          "plugin": "users-permissions",
+          "name": "User",
+          "actionType": "updateProfile"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/profile/uploadPhoto",
+      "handler": "User.uploadPhoto",
+      "config": {
+        "policies": [],
+        "prefix": "",
+        "description": "change Profile Photo",
+        "tag": {
+          "plugin": "users-permissions",
+          "name": "User",
+          "actionType": "uploadPhoto"
+        }
+      }
+    },
+    {
       "method": "GET",
       "path": "/users/:id",
       "handler": "User.findOne",
