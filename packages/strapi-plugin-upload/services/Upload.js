@@ -374,6 +374,85 @@ module.exports = {
     await Promise.all(enhancedFiles.map(file => this.uploadFileAndPersist(file)));
   },
 
+  async uploadToModel(params, file, source) {
+    const { id, model, field, path } = params;
+    const fileData = await this.enhanceFile(file, {}, {
+      refId: id,
+      ref: model,
+      source,
+      field,
+      path
+    });
+
+    await strapi.plugins.upload.provider.upload(fileData);
+    return fileData;
+  },
+
+  async uploadContent(params, file, source) {
+    const { bucket, path } = params;
+    const fileData = await this.enhanceFile(file, {}, {
+      source,
+      path,
+      bucket
+    });
+
+    const key = `${path}/${fileData.name}`
+    try {
+      await strapi.plugins.upload.provider.upload(fileData, { Bucket: bucket, Key: key });
+    } catch (e) {
+      console.log('HELMET', e)
+      return e
+    }
+    return fileData;
+  },
+
+  async listUpload(params, source) {
+    const { bucket, path, next, prefix } = params;
+    let sent = {
+      Bucket: bucket,
+      Prefix: path,
+      MaxKeys: 20,
+      Marker: next
+    }
+
+    if (prefix) {
+      sent.Prefix += `/${prefix}`
+    }
+
+    const data = strapi.plugins.upload.provider.list(sent);
+    return data
+  },
+  async deleteContent(params) {
+    const customParams = {
+      Key: params.name,
+      Bucket: params.bucket,
+    }
+    const data = await strapi.plugins.upload.provider.delete({}, customParams)
+    return data
+  },
+
+  async renameContent(params) {
+    const customParams = {
+      CopySource: `${params.bucket}/${params.oldName}`,
+      Bucket: params.bucket,
+      Key: `${params.path}/${params.newName}`,
+      ACL: 'public-read'
+    }
+    try {
+      const data = await strapi.plugins.upload.provider.copyFile(customParams)
+      if (data) {
+        const paramDele = {
+          bucket: params.bucket,
+          name: params.oldName
+        }
+       await this.deleteContent(paramDele)
+        return data
+      }
+    } catch (e) {
+      return e
+    }
+  },
+
   getSettings() {
     return strapi
       .store({
