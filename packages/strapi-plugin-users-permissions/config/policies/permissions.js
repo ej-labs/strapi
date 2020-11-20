@@ -40,12 +40,12 @@ module.exports = async (ctx, next) => {
       name: 'users-permissions',
     });
 
-    if (
-      _.get(await store.get({ key: 'advanced' }), 'email_confirmation') &&
-      !ctx.state.user.confirmed
-    ) {
-      return handleErrors(ctx, 'Your account email is not confirmed.', 'unauthorized');
-    }
+    // if (
+    //   _.get(await store.get({ key: 'advanced' }), 'email_confirmation') &&
+    //   !ctx.state.user.confirmed
+    // ) {
+    //   return handleErrors(ctx, 'Your account email is not confirmed.', 'unauthorized');
+    // }
 
     if (ctx.state.user.blocked) {
       return handleErrors(

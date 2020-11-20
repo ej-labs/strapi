@@ -80,18 +80,18 @@ module.exports = {
         );
       }
 
-      if (
-        _.get(await store.get({ key: 'advanced' }), 'email_confirmation') &&
-        user.confirmed !== true
-      ) {
-        return ctx.badRequest(
-          null,
-          formatError({
-            id: 'Auth.form.error.confirmed',
-            message: 'Your account email is not confirmed',
-          })
-        );
-      }
+      // if (
+      //   _.get(await store.get({ key: 'advanced' }), 'email_confirmation') &&
+      //   user.confirmed !== true
+      // ) {
+      //   return ctx.badRequest(
+      //     null,
+      //     formatError({
+      //       id: 'Auth.form.error.confirmed',
+      //       message: 'Your account email is not confirmed',
+      //     })
+      //   );
+      // }
 
       if (user.blocked === true) {
         return ctx.badRequest(
